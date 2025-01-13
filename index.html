@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jocul Cuvintelor</title>
+</head>
+<body>
+    <h1>Jocul Cuvintelor</h1>
+    <div id="riddle"></div>
+    <input type="text" id="answer" placeholder="Your answer">
+    <button onclick="submitAnswer()">Submit</button>
+    <div id="result"></div>
+
+    <script>
+        let currentRiddleId = null;
+
+        // Fetch a riddle when the page loads
+        window.onload = function() {
+            fetch('http://127.0.0.1:8000/get-riddle')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.detail) {
+                        document.getElementById('riddle').innerText = 'Error: ' + data.detail;
+                    } else {
+                        currentRiddleId = data.id;
+                        document.getElementById('riddle').innerText = data.question;
+                    }
+                });
+        };
+
+        // Submit the answer
+        function submitAnswer() {
+            const answer = document.getElementById('answer').value;
+            fetch('http://127.0.0.1:8000/submit-answer', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ riddle_id: currentRiddleId, answer: answer })
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('result').innerText = data.result === 'correct' ? 'Correct!' : 'Wrong!';
+            });
+        }
+    </script>
+</body>
+</html>
