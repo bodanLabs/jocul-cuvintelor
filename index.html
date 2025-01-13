@@ -14,10 +14,11 @@
 
     <script>
         let currentRiddleId = null;
+        const apiBaseUrl = "https://jocul-cuvintelor.onrender.com";  // Replace with your live URL
 
         // Fetch a riddle when the page loads
         window.onload = function() {
-            fetch('http://127.0.0.1:8000/get-riddle')
+            fetch(`${apiBaseUrl}/get-riddle`)
                 .then(response => response.json())
                 .then(data => {
                     if (data.detail) {
@@ -32,7 +33,7 @@
         // Submit the answer
         function submitAnswer() {
             const answer = document.getElementById('answer').value;
-            fetch('http://127.0.0.1:8000/submit-answer', {
+            fetch(`${apiBaseUrl}/submit-answer`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ riddle_id: currentRiddleId, answer: answer })
