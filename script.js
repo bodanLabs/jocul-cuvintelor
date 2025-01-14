@@ -45,6 +45,9 @@ async function getRiddle() {
                 submitAnswer();
             }
         });
+        if (document.body.classList.contains('dark-mode')) {
+            inputBox.classList.add('dark-mode');
+        }
         document.getElementById('answer-container').appendChild(inputBox);
     }
 
@@ -239,3 +242,38 @@ function getHint() {
 
     checkHintAvailability();
 }
+
+
+function toggleDarkMode() {
+    const body = document.body;
+    const darkModeToggleButton = document.getElementById('dark-mode-toggle');
+
+    body.classList.toggle('dark-mode');
+    document.getElementById('riddle-container').classList.toggle('dark-mode');
+    document.getElementById('progress-bar-container').classList.toggle('dark-mode');
+    document.querySelectorAll('button').forEach((btn) => btn.classList.toggle('dark-mode'));
+    document.getElementById('submit-button').classList.toggle('dark-mode');
+    document.getElementById('hint-button').classList.toggle('dark-mode');
+    document.querySelector('h1').classList.toggle('dark-mode');
+
+    // Change button text based on current mode
+    if (body.classList.contains('dark-mode')) {
+        darkModeToggleButton.innerText = "☀️ White Mode";
+    } else {
+        darkModeToggleButton.innerText = "🌙 Dark Mode";
+    }
+
+    // Save user preference in localStorage
+    const isDarkMode = body.classList.contains('dark-mode');
+    localStorage.setItem('darkMode', isDarkMode ? 'enabled' : 'disabled');
+}
+
+
+
+// Apply dark mode if the user previously enabled it
+window.onload = () => {
+    const darkModePreference = localStorage.getItem('darkMode');
+    if (darkModePreference === 'enabled') {
+        toggleDarkMode();
+    }
+};
