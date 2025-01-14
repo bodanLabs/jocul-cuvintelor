@@ -3,46 +3,463 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Jocul Cuvintelor</title>
+    <title>Riddle Game</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            text-align: center;
+            margin-top: 50px;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+        h1 {
+            font-size: 2.5em;
+            color: #2c3e50;
+        }
+        #riddle-container {
+            margin: 20px auto;
+            padding: 20px;
+            border: 2px solid #2c3e50;
+            border-radius: 10px;
+            background-color: #ffffff;
+            width: 80%;
+            max-width: 600px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            display: none; /* Hide initially */
+            opacity: 1;
+            transition: opacity 0.5s ease;
+        }
+        .hidden {
+            opacity: 0;
+        }
+        #riddle {
+            font-size: 1.5em;
+            margin-bottom: 20px;
+        }
+        .answer-box {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            margin: 5px;
+            border: 2px solid #2c3e50;
+            border-radius: 5px;
+            text-align: center;
+            font-size: 1.2em;
+        }
+        button {
+            display: inline-block;
+            margin: 20px auto;
+            padding: 10px 20px;
+            font-size: 1em;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            background-color: #2c3e50;
+            color: #ffffff;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #34495e;
+        }
+        button:disabled {
+            background-color: #bdc3c7;
+            cursor: not-allowed;
+        }
+        #result {
+            font-weight: bold;
+            margin-top: 20px;
+        }
+        #result.correct {
+            color: #27ae60;
+        }
+        #result.incorrect {
+            color: #e74c3c;
+        }
+        #earnings {
+            font-size: 1.2em;
+            margin-top: 20px;
+            display: none; /* Hide initially */
+        }
+        #correct-answer {
+            font-size: 1.1em;
+            color: #e74c3c;
+            margin-top: 10px;
+        }
+        .correct {
+            animation: flash-green 0.5s ease;
+        }
+        
+        @keyframes flash-green {
+            0% { background-color: #27ae60; }
+            100% { background-color: transparent; }
+        }
+
+        .incorrect {
+            animation: shake 0.5s ease;
+        }
+        
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            50% { transform: translateX(10px); }
+            75% { transform: translateX(-10px); }
+        }
+        
+        #progress-bar-container{
+            width: 80%;
+            height: 20px;
+            background-color: #e0e0e0;
+            border-radius: 10px;
+            margin: 20px auto;
+            box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.2);
+            display: none;  /* Hide by default */
+
+
+        }
+        #progress-bar {
+            width: 0%;
+            height: 100%;
+            background-color: #27ae60;
+            border-radius: 10px;
+            transition: width 0.5s ease;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 5px rgba(39, 174, 96, 0.5); }
+            50% { box-shadow: 0 0 20px rgba(39, 174, 96, 0.8); }
+            100% { box-shadow: 0 0 5px rgba(39, 174, 96, 0.5); }
+        }
+
+        .answer-box {
+            transition: transform 0.2s ease;
+        }
+        
+        .answer-box.bounce {
+            animation: bounce 0.5s ease;
+        }
+        
+        .answer-box.shake {
+            animation: shake 0.5s ease;
+        }
+
+        .answer-box:focus {
+            outline: none;
+            box-shadow: 0 0 10px rgba(46, 204, 113, 0.8);  /* Green glow */
+            border-color: #2ecc71;
+        }
+        
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            50% { transform: translateX(5px); }
+        }
+        
+        
+    </style>
 </head>
 <body>
-    <h1>Jocul Cuvintelor</h1>
-    <div id="riddle"></div>
-    <input type="text" id="answer" placeholder="Your answer">
-    <button onclick="submitAnswer()">Submit</button>
-    <div id="result"></div>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+    <audio id="correct-sound" src="sounds/correct.mp3"></audio>
+    <audio id="wrong-sound" src="sounds/wrong.mp3"></audio>
+    <audio id="timeout-sound" src="sounds/timeout.mp3"></audio>
+    <audio id="click-sound" src="sounds/click.mp3"></audio>
+    <div id="progress-bar-container">
+        <div id="progress-bar"></div>
+    </div>
+    <h1>Riddle Game</h1>
+    <button id="start-button" onclick="startGame()">Play</button>
+    <div id="riddle-container">
+        <p id="riddle"></p>
+        <div id="answer-container"></div>
+        <button id="submit-button" onclick="submitAnswer()">Submit</button>
+        <button id="hint-button" onclick="getHint()">Get Hint (-$10)</button>
+        <p id="timer">Time left: 60s</p>
+    </div>
+    <p id="result"></p>
+    <p id="correct-answer" style="display: none;"></p>
+    <p id="earnings">Earnings: $0</p>
 
     <script>
-        let currentRiddleId = null;
-        const apiBaseUrl = "https://jocul-cuvintelor.onrender.com";  // Replace with your live URL
+        let riddleCount = 0;  // To track the number of riddles served for the current length
+        let riddleRound = 1;  // Tracks whether it's the first or second riddle for the current length
+        let currentRiddle = "";
+        let correctAnswer = "";
+        let totalEarnings = 0;
+        let currentAnswerLength = 3;
+        let timerInterval;  // To store the interval ID
 
-        // Fetch a riddle when the page loads
-        window.onload = function() {
-            fetch(`${apiBaseUrl}/get-riddle`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.detail) {
-                        document.getElementById('riddle').innerText = 'Error: ' + data.detail;
-                    } else {
-                        currentRiddleId = data.id;
-                        document.getElementById('riddle').innerText = data.question;
+
+        function startGame() {
+            document.getElementById('click-sound').play();
+            document.getElementById('start-button').style.display = 'none';
+            document.getElementById('riddle-container').style.display = 'block';
+            document.getElementById('earnings').style.display = 'block';
+            document.getElementById('submit-button').style.display = 'inline-block';
+            document.getElementById('hint-button').style.display = 'inline-block';
+            document.getElementById('progress-bar-container').style.display = 'block';  // Show the progress bar
+
+            getRiddle();
+        }
+
+        // Fetch a riddle based on answer length from the backend
+        async function getRiddle() {
+            if (currentAnswerLength > 10) {  // End the game after two 10-character riddles
+                endGame();
+                return;
+            }
+        
+            const response = await fetch(`http://127.0.0.1:8000/riddle/${currentAnswerLength}`);
+            const data = await response.json();
+            currentRiddle = data.question;
+            correctAnswer = data.answer;
+            document.getElementById('riddle').innerText = currentRiddle;
+            document.getElementById('result').innerText = "";
+            document.getElementById('correct-answer').style.display = 'none';
+            document.getElementById('answer-container').innerHTML = "";
+            document.getElementById('submit-button').disabled = false;
+            document.getElementById('hint-button').disabled = false;
+
+
+        
+            // Create input boxes for the answer
+            for (let i = 0; i < currentAnswerLength; i++) {
+                const inputBox = document.createElement('input');
+                inputBox.type = 'text';
+                inputBox.maxLength = 1;
+                inputBox.className = 'answer-box';
+                inputBox.id = `char-${i}`;
+                inputBox.oninput = checkHintAvailability;
+
+                inputBox.addEventListener('keydown', (event) => {
+                    if (event.key === 'Enter') {
+                        submitAnswer();  // Trigger submitAnswer when Enter is pressed
                     }
                 });
-        };
 
-        // Submit the answer
-        function submitAnswer() {
-            const answer = document.getElementById('answer').value;
-            fetch(`${apiBaseUrl}/submit-answer`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ riddle_id: currentRiddleId, answer: answer })
-            })
-            .then(response => response.json())
-            .then(data => {
-                document.getElementById('result').innerText = data.result === 'correct' ? 'Correct!' : 'Wrong!';
-            });
+                ///
+                inputBox.addEventListener('input', (event) => moveToNextBox(event,i));
+                inputBox.addEventListener('keydown',(event) => handleBackspace(event,i));
+
+                document.getElementById('answer-container').appendChild(inputBox);
+            }
+            document.getElementById('riddle-container').classList.add('hidden');
+            setTimeout(() => {
+                // Load new riddle after fade-out
+                document.getElementById('riddle-container').classList.remove('hidden');
+            }, 500);
+            startTimer();  // Start the timer when a new riddle is fetched
+
         }
+        
+        
+        function moveToNextBox(event, index) {
+            const currentBox = document.getElementById(`char-${index}`);
+            const nextBox = document.getElementById(`char-${index + 1}`);
+
+            if (currentBox.value.length === 1 && nextBox){
+                nextBox.focus(); // Move to the next box if it exists
+            }
+        }
+
+        function handleBackspace(event,index) {
+            const currentBox = document.getElementById(`char-${index}`);
+            const prevBox = document.getElementById(`char-${index - 1}`);
+
+            if (event.key === 'Backspace' && currentBox.value === '' && prevBox) {
+                prevBox.focus(); // Move to the previous box if it exists
+            }
+        }
+        
+
+        function animateDollarCounter(targetAmount) {
+            const counterElement = document.getElementById('earnings');
+            const currentAmount = parseInt(counterElement.innerText.replace('Earnings: $', '')) || 0;
+            const increment = (targetAmount - currentAmount) / 20;  // Divide the difference into 20 steps
+        
+            let step = 0;
+            const interval = setInterval(() => {
+                step++;
+                const newAmount = Math.min(currentAmount + step * increment, targetAmount);
+                counterElement.innerText = `Earnings: $${Math.floor(newAmount)}`;
+        
+                if (step >= 20) {
+                    clearInterval(interval);
+                    counterElement.innerText = `Earnings: $${targetAmount}`;
+                }
+            }, 25);  // Update every 25ms for smooth animation
+        }
+        
+        
+        
+
+        // Submit the user's answer and check if it's correct
+        async function submitAnswer() {
+            stopTimer();  // Stop the timer when the user submits an answer
+            let userAnswer = "";
+            for (let i = 0; i < currentAnswerLength; i++) {
+                const charBox = document.getElementById(`char-${i}`);
+                userAnswer += charBox.value;
+            }
+        
+            const response = await fetch('http://127.0.0.1:8000/check-answer', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ riddle: currentRiddle, answer: userAnswer })
+            });
+            const data = await response.json();
+            const resultText = data.correct ? "Correct!" : "Wrong answer!";
+            const resultClass = data.correct ? "correct" : "incorrect";
+            document.getElementById('result').innerText = resultText;
+            document.getElementById('result').className = resultClass;
+        
+            // Play sound based on answer correctness
+            if (data.correct) {
+                confetti({
+                    particleCount: 100,
+                    spread: 70,
+                    origin: { y: 0.6 }
+                });
+                document.getElementById('correct-sound').play();
+                document.querySelectorAll('.answer-box').forEach((box) => {
+                    box.classList.add('bounce');
+                    setTimeout(() => box.classList.remove('bounce'), 500);
+                });
+                const earnings = currentAnswerLength * 10;  // $10 per character
+                totalEarnings += earnings;  // Update earnings if correct
+                animateDollarCounter(totalEarnings);  // Add this line here
+
+            } else {
+                document.getElementById('wrong-sound').play();
+                document.querySelectorAll('.answer-box').forEach((box) => {
+                    box.classList.add('shake');
+                    setTimeout(() => box.classList.remove('shake'), 500);
+                });
+                document.getElementById('correct-answer').innerText = `Correct answer: ${correctAnswer}`;
+                document.getElementById('correct-answer').style.display = 'block';
+            }
+        
+            // Update earnings display
+            document.getElementById('earnings').innerText = `Earnings: $${totalEarnings}`;
+        
+            // Disable submit button and enable new riddle button
+            document.getElementById('submit-button').disabled = true;
+        
+            // Move to the next riddle
+            setTimeout(nextRiddle, 2000);  // Delay slightly for better user experience
+        }   
+        
+        
+        
+        function nextRiddle(){
+            riddleCount++;
+
+            if (riddleCount >= 2) {
+                currentAnswerLength++;  // Move to the next length
+                riddleCount = 0;  // Reset the counter for the new length
+            }
+
+            const maxRiddles = 8*2;
+            const currentProgress = ((currentAnswerLength - 3) *2 + riddleCount) / maxRiddles * 100;
+            document.getElementById('progress-bar').style.width = `${currentProgress}%`;
+
+            getRiddle();
+        }
+        
+        
+        function endGame() {
+            document.getElementById('correct-answer').style.display = 'none';
+            document.getElementById('riddle-container').style.display = 'none';
+            document.getElementById('earnings').style.display = 'none';
+            document.getElementById('result').innerText = `End of the game! You won $${totalEarnings}`;
+            document.getElementById('result').className = "correct";
+            document.getElementById('start-button').style.display = 'block';
+            document.getElementById('start-button').innerText = 'Play Again';
+            currentAnswerLength = 3;
+            totalEarnings = 0;
+        }
+        
+
+
+
+        function startTimer() {
+            let timeLeft = 60;  // 60 seconds countdown
+            document.getElementById('timer').innerText = `Time left: ${timeLeft}s`;
+        
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                document.getElementById('timer').innerText = `Time left: ${timeLeft}s`;
+        
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);  // Stop the timer
+                    document.getElementById('result').innerText = "Time's up!";
+                    document.getElementById('result').className = "incorrect";
+                    document.getElementById('timeout-sound').play();
+                    document.getElementById('submit-button').disabled = true;
+        
+                    // Move to the next riddle after 2 seconds
+                    setTimeout(nextRiddle, 2000);
+                }
+            }, 1000);  // Update every second
+        }
+        
+        
+        
+        
+        
+        function stopTimer() {
+            clearInterval(timerInterval);  // Stop the timer
+        }
+
+
+        // Provide a hint by revealing a random character
+        function getHint() {
+            totalEarnings -= 10;
+            document.getElementById('earnings').innerText = `Earnings: $${totalEarnings}`;
+
+            // Find unrevealed characters
+            let unrevealedIndices = [];
+            for (let i = 0; i < currentAnswerLength; i++) {
+                const charBox = document.getElementById(`char-${i}`);
+                if (charBox.value === "") {
+                    unrevealedIndices.push(i);
+                }
+            }
+
+            // Reveal a random character if there are unrevealed ones
+            if (unrevealedIndices.length > 0) {
+                const randomIndex = unrevealedIndices[Math.floor(Math.random() * unrevealedIndices.length)];
+                document.getElementById(`char-${randomIndex}`).value = correctAnswer[randomIndex];
+            }
+
+            checkHintAvailability();
+        }
+
+        // Check if the hint button should be disabled
+        function checkHintAvailability() {
+            let unrevealedCount = 0;
+            for (let i = 0; i < currentAnswerLength; i++) {
+                const charBox = document.getElementById(`char-${i}`);
+                if (charBox.value === "") {
+                    unrevealedCount++;
+                }
+            }
+
+            // Disable hint button if only one character is missing
+            document.getElementById('hint-button').disabled = (unrevealedCount <= 1);
+        }
+
+        // Load a riddle when the page loads
+        window.onload = function() {
+            document.getElementById('start-button').style.display = 'block';
+        };
     </script>
 </body>
 </html>
